@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { LogIn, LogOut, LayoutDashboard, Search, Calendar, Users, Menu, X } from 'lucide-react';
+import { LogIn, LogOut, LayoutDashboard, Search, Calendar, Users, Menu, X, Award } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth, signInWithGoogle, logout, db, doc, getDoc, setDoc, serverTimestamp } from '../firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -34,6 +34,17 @@ export default function Navbar() {
           await setDoc(docRef, newProfile);
           setProfile(newProfile);
         }
+
+        // Check if this user is assigned as an admin for any clubs
+        const clubsQuery = query(collection(db, 'clubs'), where('adminEmail', '==', firebaseUser.email));
+        const clubsSnap = await getDocs(clubsQuery);
+        clubsSnap.forEach(async (clubDoc) => {
+          if (clubDoc.data().adminUid !== firebaseUser.uid) {
+            await updateDoc(doc(db, 'clubs', clubDoc.id), {
+              adminUid: firebaseUser.uid
+            });
+          }
+        });
       } else {
         setProfile(null);
       }
@@ -86,6 +97,10 @@ export default function Navbar() {
                   <LayoutDashboard size={18} />
                   <span>Dashboard</span>
                 </Link>
+                <Link to="/performance" className="flex items-center space-x-1 text-slate-600 hover:text-geu-blue transition-colors">
+                  <Award size={18} />
+                  <span>Performance</span>
+                </Link>
                 <div className="flex items-center space-x-3 pl-4 border-l border-slate-200">
                   <img src={user.photoURL || ''} alt="" className="w-8 h-8 rounded-full border border-slate-200" />
                   <button onClick={handleLogout} className="text-slate-600 hover:text-geu-red transition-colors">
@@ -125,7 +140,12 @@ export default function Navbar() {
             <div className="px-4 pt-2 pb-6 space-y-4">
               <Link to="/clubs" onClick={() => setIsMenuOpen(false)} className="block py-2 text-slate-600">Clubs</Link>
               <Link to="/events" onClick={() => setIsMenuOpen(false)} className="block py-2 text-slate-600">Events</Link>
-              {user && <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="block py-2 text-slate-600">Dashboard</Link>}
+              {user && (
+                <>
+                  <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="block py-2 text-slate-600">Dashboard</Link>
+                  <Link to="/performance" onClick={() => setIsMenuOpen(false)} className="block py-2 text-slate-600">Performance</Link>
+                </>
+              )}
               {user ? (
                 <button onClick={handleLogout} className="w-full flex items-center justify-center space-x-2 bg-slate-100 text-slate-600 py-3 rounded-lg">
                   <LogOut size={18} />

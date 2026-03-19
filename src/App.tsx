@@ -11,6 +11,8 @@ import Clubs from './pages/Clubs';
 import ClubDetails from './pages/ClubDetails';
 import Events from './pages/Events';
 import Dashboard from './pages/Dashboard';
+import ClubManagement from './pages/ClubManagement';
+import Performance from './pages/Performance';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
@@ -26,6 +28,8 @@ export default function App() {
               <Route path="/clubs/:id" element={<ClubDetails />} />
               <Route path="/events" element={<Events />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/manage/:clubId" element={<ClubManagement />} />
+              <Route path="/performance" element={<Performance />} />
             </Routes>
           </AnimatePresence>
         </main>

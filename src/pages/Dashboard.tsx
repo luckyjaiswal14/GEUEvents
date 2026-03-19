@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { auth, db, collection, query, where, getDocs, doc, getDoc, addDoc, serverTimestamp, Timestamp, updateDoc, deleteDoc } from '../firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { UserProfile, Club, Membership, ClubEvent } from '../types';
-import { LayoutDashboard, Users, Calendar, Settings, Plus, Trash2, Edit, CheckCircle2, Clock, LogIn } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Settings, Plus, Trash2, Edit, CheckCircle2, Clock, LogIn, Award } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -15,11 +15,14 @@ export default function Dashboard() {
   const [managedClub, setManagedClub] = useState<Club | null>(null);
   const [clubEvents, setClubEvents] = useState<ClubEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'my-clubs' | 'manage-club'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'my-clubs' | 'manage-club' | 'admin-panel'>('overview');
   
   // Form States
   const [showEventModal, setShowEventModal] = useState(false);
+  const [showClubModal, setShowClubModal] = useState(false);
   const [newEvent, setNewEvent] = useState({ title: '', description: '', date: '', location: '', image: '' });
+  const [newClub, setNewClub] = useState({ name: '', description: '', category: '', adminEmail: '' });
+  const [allClubs, setAllClubs] = useState<Club[]>([]);
 
   const navigate = useNavigate();
 
@@ -45,6 +48,12 @@ export default function Dashboard() {
               return { ...m, clubName: clubDoc.exists() ? (clubDoc.data() as Club).name : 'Unknown Club' };
             }));
             setMyMemberships(membershipsWithNames);
+
+            // If admin, fetch all clubs
+            if (profileData.role === 'admin') {
+              const clubsSnap = await getDocs(collection(db, 'clubs'));
+              setAllClubs(clubsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Club)));
+            }
 
             // If club_admin, fetch managed club
             if (profileData.role === 'club_admin' || profileData.role === 'admin') {
@@ -107,6 +116,37 @@ export default function Dashboard() {
     }
   };
 
+  const handleCreateClub = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (profile?.role !== 'admin' || !user) return;
+
+    try {
+      // 1. Create the club document
+      const clubData = {
+        name: newClub.name,
+        description: 'New campus club',
+        category: newClub.category,
+        adminEmail: newClub.adminEmail,
+        adminUid: '', // Will be updated when the admin logs in, or we can look it up if they already exist
+        image: `https://picsum.photos/seed/${newClub.name}/800/400`,
+        membersCount: 0,
+        createdAt: serverTimestamp(),
+      };
+      
+      const docRef = await addDoc(collection(db, 'clubs'), clubData);
+      
+      // 2. Update local state
+      setAllClubs([...allClubs, { id: docRef.id, ...clubData } as any]);
+      setShowClubModal(false);
+      setNewClub({ name: '', description: '', category: '', adminEmail: '' });
+      
+      alert('Club registered successfully! The assigned admin will gain access upon their next login.');
+    } catch (error) {
+      console.error('Error creating club:', error);
+      alert('Failed to create club. Check console for details.');
+    }
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="w-12 h-12 border-4 border-geu-blue border-t-transparent rounded-full animate-spin"></div></div>;
 
   if (!user) {
@@ -162,15 +202,26 @@ export default function Dashboard() {
             <Users size={20} />
             <span>My Memberships</span>
           </button>
-          {(profile?.role === 'club_admin' || profile?.role === 'admin') && (
-            <button 
-              onClick={() => setActiveTab('manage-club')}
+          {(profile?.role === 'club_admin' || profile?.role === 'admin') && managedClub && (
+            <Link 
+              to={`/manage/${managedClub.id}`}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-bold transition-all ${
                 activeTab === 'manage-club' ? 'bg-geu-blue text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 hover:bg-slate-50'
               }`}
             >
               <Settings size={20} />
               <span>Manage Club</span>
+            </Link>
+          )}
+          {profile?.role === 'admin' && (
+            <button 
+              onClick={() => setActiveTab('admin-panel')}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-bold transition-all ${
+                activeTab === 'admin-panel' ? 'bg-geu-blue text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              <Award size={20} />
+              <span>Admin Panel</span>
             </button>
           )}
         </nav>
@@ -247,6 +298,10 @@ export default function Dashboard() {
                 <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
                   <h2 className="text-xl font-display font-bold text-geu-blue">Quick Actions</h2>
                   <div className="grid grid-cols-2 gap-4">
+                    <Link to="/performance" className="p-4 rounded-xl bg-slate-50 hover:bg-geu-blue hover:text-white transition-all text-center space-y-2 group">
+                      <Award size={24} className="mx-auto text-geu-blue group-hover:text-white" />
+                      <p className="text-sm font-bold">My Performance</p>
+                    </Link>
                     <Link to="/clubs" className="p-4 rounded-xl bg-slate-50 hover:bg-geu-blue hover:text-white transition-all text-center space-y-2 group">
                       <Users size={24} className="mx-auto text-geu-blue group-hover:text-white" />
                       <p className="text-sm font-bold">Find Clubs</p>
@@ -432,6 +487,108 @@ export default function Dashboard() {
                           >
                             Create Event
                           </button>
+                        </div>
+                      </form>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+          {activeTab === 'admin-panel' && profile?.role === 'admin' && (
+            <motion.div 
+              key="admin-panel"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-12"
+            >
+              <div className="flex justify-between items-center">
+                <div className="space-y-2">
+                  <h1 className="text-3xl font-display font-bold text-geu-blue">System Administration</h1>
+                  <p className="text-slate-500">Global control over all campus clubs and users.</p>
+                </div>
+                <button 
+                  onClick={() => setShowClubModal(true)}
+                  className="bg-geu-blue text-white px-6 py-3 rounded-xl font-bold flex items-center space-x-2 hover:bg-blue-900 transition-all shadow-lg"
+                >
+                  <Plus size={20} />
+                  <span>Create New Club</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6">
+                <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                  <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                    <h3 className="font-bold text-geu-blue">All Registered Clubs</h3>
+                  </div>
+                  <div className="divide-y divide-slate-100">
+                    {allClubs.map(club => (
+                      <div key={club.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-all">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-geu-blue font-bold">
+                            {club.name.charAt(0)}
+                          </div>
+                          <div>
+                            <h4 className="font-bold">{club.name}</h4>
+                            <p className="text-xs text-slate-400">{club.category}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <Link to={`/manage/${club.id}`} className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 transition-all">
+                            Manage
+                          </Link>
+                          <button className="p-2 text-slate-300 hover:text-geu-red transition-all">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Club Creation Modal */}
+              <AnimatePresence>
+                {showClubModal && (
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <motion.div 
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      onClick={() => setShowClubModal(false)}
+                      className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                    />
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                      className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 space-y-8"
+                    >
+                      <h2 className="text-2xl font-display font-bold text-geu-blue">Register New Club</h2>
+                      <form onSubmit={handleCreateClub} className="space-y-6">
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-600">Club Name</label>
+                          <input type="text" className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-geu-blue"
+                            value={newClub.name} onChange={(e) => setNewClub({...newClub, name: e.target.value})} />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-600">Admin Email (Initial Head)</label>
+                          <input type="email" placeholder="student@geu.ac.in" className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-geu-blue"
+                            value={newClub.adminEmail} onChange={(e) => setNewClub({...newClub, adminEmail: e.target.value})} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-bold text-slate-600">Category</label>
+                            <select className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-geu-blue"
+                              value={newClub.category} onChange={(e) => setNewClub({...newClub, category: e.target.value})}>
+                              <option value="">Select...</option>
+                              <option value="Technical">Technical</option>
+                              <option value="Cultural">Cultural</option>
+                              <option value="Sports">Sports</option>
+                              <option value="Social">Social</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="flex space-x-4 pt-4">
+                          <button onClick={() => setShowClubModal(false)} className="flex-grow py-4 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Cancel</button>
+                          <button type="submit" className="flex-grow bg-geu-blue text-white py-4 rounded-xl font-bold hover:bg-blue-900 transition-all shadow-lg">Create Club</button>
                         </div>
                       </form>
                     </motion.div>

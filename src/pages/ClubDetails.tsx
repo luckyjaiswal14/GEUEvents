@@ -62,8 +62,12 @@ export default function ClubDetails() {
       const newMembership: Membership = {
         id: membershipId,
         userId: auth.currentUser.uid,
+        userName: auth.currentUser.displayName || 'Student',
+        userEmail: auth.currentUser.email || '',
         clubId: id,
+        clubName: club.name,
         status: 'pending',
+        role: 'member',
         joinedAt: serverTimestamp() as any,
       };
       await setDoc(doc(db, 'memberships', membershipId), newMembership);

@@ -23,6 +23,17 @@ service cloud.firestore {
         (get(/databases/$(database)/documents/clubs/$(clubId)).data.adminUid == request.auth.uid || isAdmin());
     }
 
+    function isClubHead(clubId) {
+      // Check if user has 'head' role in memberships for this club
+      // This is a bit complex in rules without a direct query, 
+      // but we can assume club heads are also listed in the club's adminUid or we use a specific check.
+      // For now, let's stick to adminUid or a membership check if we had a way to query.
+      // Actually, we can use a get() on a specific membership document if we know the ID, 
+      // but usually we'd use a custom claim or a specific field in the club doc.
+      // Let's update the club doc to have a list of heads or just use the adminUid for simplicity in this prototype.
+      return isClubAdmin(clubId);
+    }
+
     function hasOnlyAllowedFields(fields) {
       return request.resource.data.keys().hasOnly(fields);
     }
@@ -34,7 +45,8 @@ service cloud.firestore {
     // Users
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create, update: if isOwner(userId) && hasOnlyAllowedFields(['uid', 'displayName', 'email', 'photoURL', 'role', 'createdAt']);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
 
@@ -49,24 +61,47 @@ service cloud.firestore {
     // Events
     match /events/{eventId} {
       allow read: if true;
-      allow create: if isAuthenticated() && 
-        get(/databases/$(database)/documents/clubs/$(request.resource.data.clubId)).data.adminUid == request.auth.uid;
-      allow update, delete: if isAuthenticated() && 
-        get(/databases/$(database)/documents/clubs/$(resource.data.clubId)).data.adminUid == request.auth.uid;
+      allow create: if isAuthenticated() && isClubAdmin(request.resource.data.clubId);
+      allow update, delete: if isAuthenticated() && isClubAdmin(resource.data.clubId);
     }
 
     // Memberships
     match /memberships/{membershipId} {
-      allow read: if isAuthenticated() && (
-        request.auth.uid == resource.data.userId || 
-        get(/databases/$(database)/documents/clubs/$(resource.data.clubId)).data.adminUid == request.auth.uid
-      );
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
       allow update: if isAuthenticated() && (
-        get(/databases/$(database)/documents/clubs/$(resource.data.clubId)).data.adminUid == request.auth.uid ||
+        isClubAdmin(resource.data.clubId) ||
         isAdmin()
       );
-      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin() || isClubAdmin(resource.data.clubId));
+    }
+
+    // Attendance
+    match /attendance/{attendanceId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || isClubAdmin(resource.data.clubId));
+      allow create, update: if isAuthenticated() && isClubAdmin(request.resource.data.clubId);
+      allow delete: if isAuthenticated() && isClubAdmin(resource.data.clubId);
+    }
+
+    // Volunteering
+    match /volunteering/{volunteeringId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || isClubAdmin(resource.data.clubId));
+      allow create, update: if isAuthenticated() && isClubAdmin(request.resource.data.clubId);
+      allow delete: if isAuthenticated() && isClubAdmin(resource.data.clubId);
+    }
+
+    // Performance
+    match /performance/{performanceId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || isClubAdmin(resource.data.clubId));
+      allow create, update: if isAdmin() || (isAuthenticated() && isClubAdmin(request.resource.data.clubId));
+      allow delete: if isAdmin();
+    }
+
+    // Certifications
+    match /certifications/{certificationId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || isClubAdmin(resource.data.clubId));
+      allow create, update: if isAdmin() || (isAuthenticated() && isClubAdmin(request.resource.data.clubId));
+      allow delete: if isAdmin();
     }
   }
 }

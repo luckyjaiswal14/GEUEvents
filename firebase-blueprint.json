@@ -62,11 +62,82 @@
       "properties": {
         "id": { "type": "string" },
         "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
         "clubId": { "type": "string" },
+        "clubName": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "active"] },
+        "role": { "type": "string", "enum": ["member", "volunteer", "core", "head"] },
         "joinedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["userId", "clubId", "status"]
+      "required": ["userId", "clubId", "status", "role"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "description": "Attendance record for an event",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "eventId": { "type": "string" },
+        "clubId": { "type": "string" },
+        "status": { "type": "string", "enum": ["present", "absent"] },
+        "markedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "eventId", "clubId", "status"]
+    },
+    "Volunteering": {
+      "title": "Volunteering",
+      "description": "Volunteer work record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "eventId": { "type": "string" },
+        "clubId": { "type": "string" },
+        "role": { "type": "string" },
+        "hours": { "type": "number" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "eventId", "clubId", "hours"]
+    },
+    "Performance": {
+      "title": "Performance",
+      "description": "Performance metrics for a user in a club",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "clubId": { "type": "string" },
+        "score": { "type": "number" },
+        "attendanceRate": { "type": "number" },
+        "eventsParticipated": { "type": "number" },
+        "volunteerHours": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "clubId", "score"]
+    },
+    "Certification": {
+      "title": "Certification",
+      "description": "Certification eligibility status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "clubId": { "type": "string" },
+        "eligible": { "type": "boolean" },
+        "issuedAt": { "type": "string", "format": "date-time" },
+        "criteriaMet": {
+          "type": "object",
+          "properties": {
+            "attendance": { "type": "boolean" },
+            "participation": { "type": "boolean" },
+            "volunteering": { "type": "boolean" }
+          }
+        }
+      },
+      "required": ["userId", "clubId", "eligible"]
     }
   },
   "firestore": {
@@ -85,6 +156,22 @@
     "/memberships/{membershipId}": {
       "schema": "Membership",
       "description": "Club memberships"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "Attendance",
+      "description": "Attendance records"
+    },
+    "/volunteering/{volunteeringId}": {
+      "schema": "Volunteering",
+      "description": "Volunteering records"
+    },
+    "/performance/{performanceId}": {
+      "schema": "Performance",
+      "description": "Performance metrics"
+    },
+    "/certifications/{certificationId}": {
+      "schema": "Certification",
+      "description": "Certification eligibility"
     }
   }
 }
