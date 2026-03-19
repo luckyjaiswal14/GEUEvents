@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         request.auth.token.email == "work.luckyjaiswal@gmail.com");
+    }
+    
+    function isClubAdmin(clubId) {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/clubs/$(clubId)).data.adminUid == request.auth.uid || isAdmin());
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // Users
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(userId) && hasOnlyAllowedFields(['uid', 'displayName', 'email', 'photoURL', 'role', 'createdAt']);
+      allow delete: if isAdmin();
+    }
+
+    // Clubs
+    match /clubs/{clubId} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isClubAdmin(clubId);
+      allow delete: if isAdmin();
+    }
+
+    // Events
+    match /events/{eventId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && 
+        get(/databases/$(database)/documents/clubs/$(request.resource.data.clubId)).data.adminUid == request.auth.uid;
+      allow update, delete: if isAuthenticated() && 
+        get(/databases/$(database)/documents/clubs/$(resource.data.clubId)).data.adminUid == request.auth.uid;
+    }
+
+    // Memberships
+    match /memberships/{membershipId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId || 
+        get(/databases/$(database)/documents/clubs/$(resource.data.clubId)).data.adminUid == request.auth.uid
+      );
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+      allow update: if isAuthenticated() && (
+        get(/databases/$(database)/documents/clubs/$(resource.data.clubId)).data.adminUid == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+    }
+  }
+}

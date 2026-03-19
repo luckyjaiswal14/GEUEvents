@@ -1,0 +1,90 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "club_admin", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Club": {
+      "title": "Club",
+      "description": "University club information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "logo": { "type": "string" },
+        "coverImage": { "type": "string" },
+        "adminUid": { "type": "string" },
+        "socialLinks": {
+          "type": "object",
+          "properties": {
+            "instagram": { "type": "string" },
+            "linkedin": { "type": "string" },
+            "website": { "type": "string" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "description", "category", "adminUid"]
+    },
+    "Event": {
+      "title": "Event",
+      "description": "Club event information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clubId": { "type": "string" },
+        "clubName": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "location": { "type": "string" },
+        "image": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clubId", "title", "date", "location"]
+    },
+    "Membership": {
+      "title": "Membership",
+      "description": "User membership in a club",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "clubId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "active"] },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "clubId", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/clubs/{clubId}": {
+      "schema": "Club",
+      "description": "Club details"
+    },
+    "/events/{eventId}": {
+      "schema": "Event",
+      "description": "Club events"
+    },
+    "/memberships/{membershipId}": {
+      "schema": "Membership",
+      "description": "Club memberships"
+    }
+  }
+}
