@@ -539,7 +539,8 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Clubs List */}
                 <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
                   <div className="p-6 border-b border-slate-100 bg-slate-50/50">
                     <h3 className="font-bold text-geu-blue">All Registered Clubs</h3>
@@ -569,6 +570,74 @@ export default function Dashboard() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* Deployment & Infrastructure Status */}
+                <div className="space-y-6">
+                  <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                    <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                      <h3 className="font-bold text-geu-blue">Deployment & Infrastructure</h3>
+                      <span className="px-3 py-1 bg-emerald-100 text-emerald-600 rounded-full text-[10px] font-bold uppercase tracking-wider">Active</span>
+                    </div>
+                    <div className="p-6 space-y-6">
+                      <div className="flex items-start space-x-4">
+                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-geu-blue shrink-0">
+                          <Clock size={20} />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm">Simultaneous Deployments</h4>
+                          <p className="text-xs text-slate-500">Enabled: Never wait for a queued build. Multiple deployments running.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-4">
+                        <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 shrink-0">
+                          <LayoutDashboard size={20} />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm">Build Optimization</h4>
+                          <p className="text-xs text-slate-500">Active: Builds are 40% faster using optimized machine configurations.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-4">
+                        <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center text-orange-600 shrink-0">
+                          <CheckCircle2 size={20} />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm">Skew Protection</h4>
+                          <p className="text-xs text-slate-500">Active: Automatically syncing client and server versions to avoid conflicts.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-4">
+                        <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-600 shrink-0">
+                          <Settings size={20} />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm">Custom Domain</h4>
+                          <p className="text-xs text-slate-500">Connected: geuevents.vercel.app (At-cost & private).</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-geu-blue rounded-2xl p-6 text-white space-y-4 shadow-lg">
+                    <h4 className="font-bold">Infrastructure Health</h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-xs">
+                        <span>Server Load</span>
+                        <span>12%</span>
+                      </div>
+                      <div className="w-full bg-white/20 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-white h-full w-[12%] transition-all duration-500"></div>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span>Database Latency</span>
+                        <span>24ms</span>
+                      </div>
+                      <div className="w-full bg-white/20 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-white h-full w-[8%] transition-all duration-500"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
