@@ -20,7 +20,13 @@ export default function Navbar() {
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
-          setProfile(docSnap.data() as UserProfile);
+          const existingProfile = docSnap.data() as UserProfile;
+          // Ensure the default admin has the correct role in Firestore
+          if (firebaseUser.email === 'work.luckyjaiswal@gmail.com' && existingProfile.role !== 'admin') {
+            await updateDoc(docRef, { role: 'admin' });
+            existingProfile.role = 'admin';
+          }
+          setProfile(existingProfile);
         } else {
           // Create profile if it doesn't exist
           const newProfile: UserProfile = {
@@ -28,7 +34,7 @@ export default function Navbar() {
             displayName: firebaseUser.displayName || 'Student',
             email: firebaseUser.email || '',
             photoURL: firebaseUser.photoURL || '',
-            role: 'student',
+            role: firebaseUser.email === 'work.luckyjaiswal@gmail.com' ? 'admin' : 'student',
             createdAt: serverTimestamp() as any,
           };
           await setDoc(docRef, newProfile);
@@ -55,8 +61,9 @@ export default function Navbar() {
   const handleLogin = async () => {
     try {
       await signInWithGoogle();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
+      alert(`Login failed: ${error.message || 'Unknown error'}. Please ensure popups are allowed and this domain is authorized in Firebase Console.`);
     }
   };
 
