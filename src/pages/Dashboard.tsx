@@ -116,6 +116,28 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeleteClub = async (clubId: string) => {
+    if (!window.confirm('Are you sure you want to delete this club? All associated data will be lost.')) return;
+    try {
+      await deleteDoc(doc(db, 'clubs', clubId));
+      // Also delete memberships
+      const membershipsQuery = query(collection(db, 'memberships'), where('clubId', '==', clubId));
+      const membershipsSnap = await getDocs(membershipsQuery);
+      const deleteMemberships = membershipsSnap.docs.map(d => deleteDoc(d.ref));
+      
+      // Also delete events
+      const eventsQuery = query(collection(db, 'events'), where('clubId', '==', clubId));
+      const eventsSnap = await getDocs(eventsQuery);
+      const deleteEvents = eventsSnap.docs.map(d => deleteDoc(d.ref));
+
+      await Promise.all([...deleteMemberships, ...deleteEvents]);
+      alert('Club deleted successfully.');
+    } catch (error) {
+      console.error('Error deleting club:', error);
+      alert('Failed to delete club.');
+    }
+  };
+
   const handleCreateClub = async (e: React.FormEvent) => {
     e.preventDefault();
     if (profile?.role !== 'admin' || !user) return;
@@ -538,7 +560,10 @@ export default function Dashboard() {
                           <Link to={`/manage/${club.id}`} className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 transition-all">
                             Manage
                           </Link>
-                          <button className="p-2 text-slate-300 hover:text-geu-red transition-all">
+                          <button 
+                            onClick={() => handleDeleteClub(club.id)}
+                            className="p-2 text-slate-300 hover:text-geu-red transition-all"
+                          >
                             <Trash2 size={16} />
                           </button>
                         </div>

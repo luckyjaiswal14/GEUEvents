@@ -14,13 +14,15 @@ service cloud.firestore {
     
     function isAdmin() {
       return isAuthenticated() && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-         request.auth.token.email == "work.luckyjaiswal@gmail.com");
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+         (request.auth.token.email == "work.luckyjaiswal@gmail.com" && request.auth.token.email_verified == true));
     }
     
     function isClubAdmin(clubId) {
       return isAuthenticated() && 
-        (get(/databases/$(database)/documents/clubs/$(clubId)).data.adminUid == request.auth.uid || isAdmin());
+        ((exists(/databases/$(database)/documents/clubs/$(clubId)) && 
+          get(/databases/$(database)/documents/clubs/$(clubId)).data.adminUid == request.auth.uid) || isAdmin());
     }
 
     function isClubHead(clubId) {

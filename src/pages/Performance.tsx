@@ -16,7 +16,8 @@ import {
   collection, 
   query, 
   where, 
-  onSnapshot 
+  onSnapshot,
+  onAuthStateChanged
 } from '../firebase';
 import { PerformanceMetric, Certification, Membership } from '../types';
 
@@ -27,33 +28,46 @@ export default function Performance() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-    const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid));
-    const unsubscribeMemberships = onSnapshot(membershipsQuery, (snapshot) => {
-      const membershipsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
-      setMemberships(membershipsData);
+      const membershipsQuery = query(collection(db, 'memberships'), where('userId', '==', user.uid));
+      const unsubscribeMemberships = onSnapshot(membershipsQuery, (snapshot) => {
+        const membershipsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Membership));
+        setMemberships(membershipsData);
+      }, (error) => {
+        console.error('Error in memberships snapshot:', error);
+      });
+
+      const metricsQuery = query(collection(db, 'performance'), where('userId', '==', user.uid));
+      const unsubscribeMetrics = onSnapshot(metricsQuery, (snapshot) => {
+        const metricsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PerformanceMetric));
+        setMetrics(metricsData);
+      }, (error) => {
+        console.error('Error in metrics snapshot:', error);
+      });
+
+      const certsQuery = query(collection(db, 'certifications'), where('userId', '==', user.uid));
+      const unsubscribeCerts = onSnapshot(certsQuery, (snapshot) => {
+        const certsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Certification));
+        setCertifications(certsData);
+        setLoading(false);
+      }, (error) => {
+        console.error('Error in certs snapshot:', error);
+        setLoading(false);
+      });
+
+      return () => {
+        unsubscribeMemberships();
+        unsubscribeMetrics();
+        unsubscribeCerts();
+      };
     });
 
-    const metricsQuery = query(collection(db, 'performance'), where('userId', '==', user.uid));
-    const unsubscribeMetrics = onSnapshot(metricsQuery, (snapshot) => {
-      const metricsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PerformanceMetric));
-      setMetrics(metricsData);
-    });
-
-    const certsQuery = query(collection(db, 'certifications'), where('userId', '==', user.uid));
-    const unsubscribeCerts = onSnapshot(certsQuery, (snapshot) => {
-      const certsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Certification));
-      setCertifications(certsData);
-      setLoading(false);
-    });
-
-    return () => {
-      unsubscribeMemberships();
-      unsubscribeMetrics();
-      unsubscribeCerts();
-    };
+    return () => unsubscribe();
   }, []);
 
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -132,7 +146,10 @@ export default function Performance() {
                     </div>
                   </div>
                   {cert?.eligible && (
-                    <button className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium w-full justify-center">
+                    <button 
+                      onClick={() => alert(`Downloading certificate for ${membership.clubName}... (Mock)`)}
+                      className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium w-full justify-center"
+                    >
                       <Download className="w-4 h-4" />
                       Download
                     </button>
@@ -152,7 +169,7 @@ export default function Performance() {
             </p>
             <div className="space-y-4">
               <CriteriaItem icon={<CheckCircle className="w-5 h-5 text-emerald-400" />} text="Maintain at least 75% attendance in club events" />
-              <CriteriaItem icon={<CheckCircle className="w-5 h-5 text-emerald-400" />} text="Participate in at least 5 major events per semester" />
+              <CriteriaItem icon={<CheckCircle className="w-5 h-5 text-emerald-400" />} text="Participate in at least 3 major events per semester" />
               <CriteriaItem icon={<CheckCircle className="w-5 h-5 text-emerald-400" />} text="Contribute 10+ hours of volunteer work" />
               <CriteriaItem icon={<CheckCircle className="w-5 h-5 text-emerald-400" />} text="Positive feedback from the Club Head" />
             </div>

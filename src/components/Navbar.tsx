@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, LogOut, LayoutDashboard, Search, Calendar, Users, Menu, X, Award } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { auth, signInWithGoogle, logout, db, doc, getDoc, setDoc, serverTimestamp } from '../firebase';
+import { auth, signInWithGoogle, logout, db, doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs, updateDoc } from '../firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { UserProfile } from '../types';
 import { motion, AnimatePresence } from 'motion/react';

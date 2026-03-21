@@ -80,5 +80,5 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 export { 
   collection, doc, getDoc, setDoc, updateDoc, deleteDoc, 
   query, where, onSnapshot, getDocs, Timestamp, serverTimestamp, 
-  addDoc, orderBy, limit 
+  addDoc, orderBy, limit, onAuthStateChanged
 };
